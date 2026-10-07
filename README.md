@@ -101,13 +101,64 @@ No crawling, no personal data.
 
 Claims are checked as whole sentences, not broken into atomic facts. The audit checks whether a claim is supported, not whether it actually answers the question. Next steps would be claim decomposition, fine-tuning the NLI model on SciFact, and an approximate-nearest-neighbour index for larger corpora.
 
-## Layout
+## Project structure
 
 ```
-veritrace/   the IR system, one module per stage
-scripts/     experiments, training, evaluation
-results/     metrics (JSON) and figures
-data/        our self-judged queries (raw datasets are downloaded)
-app.py       Streamlit demo
-cli.py       command-line demo
+Ir-_Midsem_project/
+├── app.py                      Streamlit demo
+├── cli.py                      command-line demo (prints every intermediate step)
+├── requirements.txt
+├── README.md
+│
+├── veritrace/                  the IR system, one module per stage
+│   ├── config.py               paths and settings
+│   ├── corpus.py               dataset loading
+│   ├── text.py                 tokenising, stop words, stemmers
+│   ├── chunking.py             splitting abstracts into sentence windows
+│   ├── index.py                positional inverted index with title/body zones
+│   ├── boolean.py              Boolean and phrase queries, skip pointers
+│   ├── sparse.py               tf-idf, SMART schemes, BM25, champion lists, tiered index
+│   ├── spell.py                spelling correction
+│   ├── dense.py                dense retrieval (BGE)
+│   ├── cluster.py              cluster pruning for the dense index
+│   ├── qpp.py                  query performance prediction features
+│   ├── router.py               adaptive hybrid router (N1)
+│   ├── fusion.py               score fusion and heap top-K
+│   ├── rerank.py               cross-encoder reranking
+│   ├── ltr.py                  LambdaMART learning to rank
+│   ├── generate.py             answer generation (extractive, Qwen, OpenAI-compatible)
+│   ├── nli.py                  NLI model wrapper
+│   ├── verify.py               claim-level citation audit (N2)
+│   ├── corrupt.py              hallucination injection (N3)
+│   ├── abstain.py              retrieval confidence and abstention (N4)
+│   ├── metrics.py              P@k, MAP, MRR, nDCG
+│   └── pipeline.py             ties everything together
+│
+├── scripts/                    experiments, training and evaluation
+│   ├── download.py             datasets and models
+│   ├── build_index.py          builds the inverted index and dense vectors
+│   ├── exp_retrieval.py        retrieval experiments, trains the router
+│   ├── exp_ltr.py              LambdaMART experiments
+│   ├── exp_chunking.py         what counts as a document
+│   ├── exp_efficiency.py       champion lists, tiered index, index elimination
+│   ├── exp_ir_extras.py        SMART schemes, stemming, spelling, cluster pruning
+│   ├── train_dense.py          fine-tunes the dense encoder
+│   ├── train_verifier.py       trains the claim verifier
+│   ├── train_abstention.py     trains the confidence model
+│   ├── calibrate_scope_gate.py off-topic gate
+│   ├── eval_rag.py             end-to-end RAG evaluation
+│   ├── verifier_pairwise.py    injected-hallucination test
+│   ├── judge_pool.py           pooling for our self-judged queries
+│   ├── measure_latency.py      timing
+│   ├── worked_example.py       every number for one query
+│   └── make_figures.py         all figures
+│
+├── data/
+│   ├── custom_queries.tsv      our own natural-language queries
+│   └── custom_judgments.csv    our relevance judgments for them
+│
+└── results/                    every metric as JSON
+    └── figures/                all plots used in the report
 ```
+
+`artifacts/` (indexes and trained models) and `data/raw/` (datasets) are not in the repo. The scripts create them when you run the setup steps above.
